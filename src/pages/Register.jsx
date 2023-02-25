@@ -1,13 +1,59 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
 import styled from 'styled-components';
 import Logo from '../assets/logo.svg';
+import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
+import { registerRoute } from '../utils/APIRoutes';
 function Register(props) {
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    alert('form');
+  const [values, setValues] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const toastOptions = {
+    autoClose: 3000,
+    position: 'bottom-right',
+    draggable: true,
+    pauseOnHover: true,
+    theme: 'dark',
   };
-  const handleChange = (e) => {};
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (handleValidation()) {
+      const { password, username, email } = values;
+      const { data } = await axios.post(registerRoute, {
+        username,
+        email,
+        password,
+      });
+    }
+  };
+
+  const handleValidation = () => {
+    const { password, confirmPassword, username, email } = values;
+    if (password !== confirmPassword) {
+      toast.error('密码不一致', toastOptions);
+      return false;
+    } else if (username.length < 3) {
+      toast.error('用户名不能少于三个', toastOptions);
+      return false;
+    } else if (username.length > 8) {
+      toast.error('用户名最长为八个');
+      return false;
+    } else if (email === '') {
+      toast.error('邮箱不能为空', toastOptions);
+      return false;
+    }
+    return true;
+  };
+
+  console.log(ToastContainer);
+  const handleChange = (e) => {
+    setValues({ ...values, [e.target.name]: e.target.value });
+  };
   return (
     <>
       <FormContainer>
@@ -46,6 +92,7 @@ function Register(props) {
           </span>
         </form>
       </FormContainer>
+      <ToastContainer />
     </>
   );
 }
