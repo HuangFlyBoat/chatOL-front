@@ -38,6 +38,12 @@ function SetAvatar(props) {
       }
     }
   };
+  // 如果没有登录直接返回
+  useEffect(() => {
+    if (!localStorage.getItem('chat-app-user')) {
+      navigate('/login');
+    }
+  }, []);
   //   获取头像
   useEffect(() => {
     async function getAva(params) {
@@ -55,12 +61,6 @@ function SetAvatar(props) {
     getAva();
   }, []);
 
-  // 如果没有登录直接返回
-  useEffect(() => {
-    if (!localStorage.getItem('chat-app-user')) {
-      navigate('/login');
-    }
-  }, []);
   return (
     <>
       {isLoading ? (
