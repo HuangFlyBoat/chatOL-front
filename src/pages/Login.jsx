@@ -54,7 +54,6 @@ function Login(props) {
     return true;
   };
 
-  console.log(ToastContainer);
   const handleChange = (e) => {
     setValues({ ...values, [e.target.name]: e.target.value });
   };
