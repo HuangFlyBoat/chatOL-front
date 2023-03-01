@@ -1,28 +1,66 @@
 import axios from 'axios';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { getAllMessagesRoute, sendMessageRoute } from '../utils/APIRoutes';
+import { v4 as uuidv4 } from 'uuid';
 import ChatInput from './ChatInput';
 // 结构赋值的同时赋予默认值，否则将通不过编译
-function ChatContainer({ currentChat, currentUser }) {
+function ChatContainer({ currentChat, currentUser, socket }) {
   const [messages, setMessages] = useState([]);
+  const [arrivalMessage, setArrivalMessage] = useState(null);
+  const scrollRef = useRef();
+  useEffect(() => {
+    async function getMessages(currentChat) {
+      if (currentChat) {
+        const res = await axios.post(getAllMessagesRoute, {
+          from: currentUser._id,
+          to: currentChat._id,
+        });
+        setMessages(res.data);
+      }
+    }
+    getMessages(currentChat);
+  }, [currentChat, currentUser]);
   const handleSendMsg = async (msg) => {
     await axios.post(sendMessageRoute, {
       from: currentUser._id,
       to: currentChat._id,
       message: msg,
     });
+    socket.current.emit('send-msg', {
+      to: currentChat._id,
+      from: currentUser._id,
+      message: msg,
+    });
+    const msgs = [...messages];
+    msgs.push({
+      fromSelf: true,
+      message: msg,
+    });
+    setMessages(msgs);
   };
+
+  // 收到消息引起的一系列驱动
+
   useEffect(() => {
-    async function getMessages(currentChat) {
-      const res = await axios.post(getAllMessagesRoute, {
-        from: currentUser._id,
-        to: currentChat._id,
+    if (socket.current) {
+      socket.current.on('msg-recieve', (msg) => {
+        setArrivalMessage({
+          fromSelf: false,
+          message: msg,
+        });
       });
-      setMessages(res.data);
     }
-    getMessages(currentChat);
-  }, [currentChat, currentUser]);
+  }, []);
+
+  useEffect(() => {
+    arrivalMessage && setMessages((prev) => [...prev, arrivalMessage]);
+  }, [arrivalMessage]);
+
+  // 如果有新消息则回到下面
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behaviour: 'smooth' });
+  }, [messages]);
   return (
     <>
       {currentChat && (
@@ -55,7 +93,7 @@ function ChatContainer({ currentChat, currentUser }) {
           <div className='chat-message'>
             {messages.map((message) => {
               return (
-                <div>
+                <div ref={scrollRef} key={uuidv4()}>
                   <div
                     className={`message ${
                       message.fromSelf ? 'sended' : 'recieved'
